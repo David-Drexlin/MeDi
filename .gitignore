@@ -1,0 +1,25 @@
+# Ignore model checkpoints
+/Models/
+# Ignore raw TCGA data -> you need to download it yourself!
+/TCGA/
+# ignore script outputs
+/wandb/
+/embeddings*/
+# Ignore Singularity/Apptainer images / def
+*.sif
+*.def
+# Ignore any logs 
+/logs/
+# Common Python ignore
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.env
+.env.*
+*.log
+.DS_Store

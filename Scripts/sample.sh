@@ -3,19 +3,19 @@
 #SBATCH --partition=gpu-2h
 #SBATCH --gpus-per-node=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=32G
-#SBATCH --output=logs/sample_%j.out
+#SBATCH --output=logs/print_%j.out
 #SBATCH --error=logs/sample_%j.err
 
 export TORCH_USE_CUDA_DSA=1
 export CUDA_LAUNCH_BLOCKING=1
 
 apptainer run --nv python_container.sif \
-  accelerate launch sample.py \
-    --path /home/space/datasets/tcga_uniform/deep_TSS_only_concatembed/checkpoint-100000/model.safetensors \
-    --n 512 \
-    --mode OOD \
+  python sample.py \
+    --path /home/daviddrexlin/MeDi/Models/deep_TSS_res:128__additive_embed_comb/checkpoint-100/model.safetensors \
+    --n 16 \
+    --mode full \
     --domains_to_condition tissue_source_site \
     --number_of_different_conditional 8 \
-    --cancer_types Colon_adenocarcinoma
+    --cancer_types Cholangiocarcinoma \
+    --real_data_root /home/daviddrexlin/TCGA/TCGA
 

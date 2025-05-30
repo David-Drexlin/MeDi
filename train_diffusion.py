@@ -35,7 +35,7 @@ from torchvision import transforms
 from tqdm.auto import tqdm
 
 from load_TCGA import load_metadata, load_dataset, custom_collate_fn
-from unet2old import UNet2DModel
+from unet import UNet2DModel
 
 logger = get_logger(__name__)
 
@@ -69,6 +69,12 @@ def parse_args():
                         help='Learning rate scheduler type')
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
                         help="Steps to accumulate gradients before updating")
+    parser.add_argument(
+        '--data_root',
+        type=str,
+        default='./TCGA',
+        help="Path to your TCGA image directory (defaults to ./TCGA)"
+    )
     return parser.parse_args()
 
 
@@ -101,6 +107,7 @@ def main():
         wandb.login(key=os.getenv('WANDB_API_KEY'))
 
     # Initialize logging and accelerator
+    data_root = args.data_root
     logging_dir = args.output_dir
     accelerator_project_config = ProjectConfiguration(
         project_dir=args.output_dir, logging_dir=logging_dir)
@@ -125,7 +132,8 @@ def main():
         sample_type='cancer_type',
         cancer_types=args.cancer_types,
         resolution=args.resolution,
-        default=len(args.holdout_mask) == 1
+        default=len(args.holdout_mask) == 1,
+        data_root=data_root
     )
     dataloader = DataLoader(
         train_dataset,
@@ -138,7 +146,8 @@ def main():
     # Prepare metadata for conditioning
     alt_name = "./train_metadata_df_complex.csv"
     df = load_metadata(
-        "./train_metadata_df.csv" if len(args.holdout_mask) == 1 else alt_name
+        path = ("./train_metadata_df.csv" if len(args.holdout_mask)==1 else "./train_metadata_df_complex.csv"),
+        data_root = args.data_root
     )
     df.rename(columns={"age_at_index": "age_p"}, inplace=True)
 
@@ -291,12 +300,14 @@ def main():
                 if args.use_ema:
                     ema_model.step(model.parameters())
                 global_step += 1
-                progress_bar.update(1)
-
+                
                 logs = {"loss": loss.detach().item(), "lr": lr_scheduler.get_last_lr()[0], "step": global_step}
                 if args.use_ema:
                     logs["ema_decay"] = ema_model.cur_decay_value
-                progress_bar.set_postfix(**logs)
+                #progress_bar.set_postfix(**logs)
+                progress_bar.set_postfix(**logs, refresh=False)
+                progress_bar.update(1)
+
                 accelerator.log(logs, step=global_step)
 
                 # Checkpoint
@@ -313,16 +324,26 @@ def main():
 
                 # FID tracking
                 if global_step % args.FID_tracker == 0 and accelerator.is_main_process:
-                    # Generate images for FID
-                    generated_dir = os.path.join(args.output_dir, f'generated_images_FID_step_{global_step}')
+                    generated_dir = os.path.join(
+                        args.output_dir,
+                        f"generated_images_FID_step_{global_step}"
+                    )
                     os.makedirs(generated_dir, exist_ok=True)
+
                     for ctype in selected_cancers:
                         idx = cancer_type_mapping[ctype]
-                        batch_labels = torch.tensor([idx] * args.batch_size).to(accelerator.device)
-                        # pick first domain if available
-                        domain = args.domains_to_condition[0] if args.domains_to_condition else None
-                        domain_idx = 0
-                        dom_labels = {domain: torch.tensor([domain_idx] * args.batch_size).to(accelerator.device)} if domain else {}
+                        batch_labels = torch.tensor(
+                            [idx] * args.batch_size,
+                            device=accelerator.device
+                        )
+                        if args.domains_to_condition:
+                            dom = args.domains_to_condition[0]
+                            dom_labels = {
+                                dom: torch.tensor([0] * args.batch_size, device=accelerator.device)
+                            }
+                        else:
+                            dom_labels = {}
+
                         generate_images_for_fid(
                             model=accelerator.unwrap_model(model),
                             noise_scheduler=noise_scheduler,
@@ -330,20 +351,27 @@ def main():
                             domain_labels=dom_labels,
                             batch_size=args.batch_size,
                             num_inference_steps=50,
-                            vae=None,
                             save_dir=generated_dir,
                             cancer_type_name=ctype,
-                            domain_value=None
+                            n_samples=500
                         )
-                    # Compute FID
+
                     metrics = calculate_metrics(
                         input1=generated_dir,
-                        input2='./TCGA',
+                        input2=args.data_root,
                         cuda=torch.cuda.is_available(),
-                        isc=False, fid=True, kid=False, verbose=True
+                        fid=True,
+                        isc=False,
+                        kid=False,
+                        verbose=False,
+                        samples_find_deep=True
                     )
-                    fid_score = metrics['frechet_inception_distance']
-                    print(f"FID at step {global_step}: {fid_score}")
+                    fid_score = metrics["frechet_inception_distance"]
+
+                    fid_txt = os.path.join(args.output_dir, "FID_apprx.txt")
+                    with open(fid_txt, "a") as f:
+                        f.write(f"step {global_step}: {fid_score}\n")
+
                     accelerator.log({"FID": fid_score}, step=global_step)
 
             if global_step >= args.optimization_steps:
@@ -357,8 +385,8 @@ def main():
         if args.use_ema:
             ema_model.store(unwrapped.parameters())
             ema_model.copy_to(unwrapped.parameters())
-        torch.save(unwrapped.state_dict(), os.path.join(args.output_dir, 'model_final.pth'))
-        unwrapped.save_pretrained(args.output_dir)
+        #torch.save(unwrapped.state_dict(), os.path.join(args.output_dir, 'model_final.pth'))
+        #unwrapped.save_pretrained(args.output_dir)
         logger.info(f"Model saved to {args.output_dir}")
     accelerator.end_training()
 
