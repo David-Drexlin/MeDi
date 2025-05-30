@@ -8,7 +8,7 @@ MeDi is an end-to-end pipeline that:
 2. **Generates** synthetic histopathology patches and **embeds** them—alongside real slides—via the UNI foundation model.
 3. **Evaluates** downstream classifiers under realistic subpopulation shifts by linear probing in embedding space.
 
-By explicitly modeling metadata, MeDi helps mitigate “shortcut” biases (e.g., hospital-specific staining) and improves robustness to unseen medical centers.
+By explicitly modeling metadata, MeDi helps mitigate "shortcut" biases (e.g., hospital-specific staining) and improves robustness to unseen medical centers. We show its use in our paper ([link to be added](#)) published at MICCAI 2025.
 
 ---
 
@@ -62,9 +62,13 @@ MeDi/
 
 ## 2. Installation
 
--git clone https://github.com/David-Drexlin/MeDi.git
--cd MeDi
--pip install -r requirements.txt
+- **Clone & install dependencies**  
+  ```bash
+  git clone https://github.com/David-Drexlin/MeDi.git
+  cd MeDi
+  pip install -r requirements.txt
+  ```  ←––– be sure to close the fence here
 
-Data:
-Download TCGA‐UT patches yourself (https://www.cancer.gov/ccg/research/genome-sequencing/tcga)
+- **Data**  
+  Download TCGA-UT patches yourself:  
+  https://www.cancer.gov/ccg/research/genome-sequencing/tcga
