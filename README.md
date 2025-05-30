@@ -13,8 +13,9 @@ By explicitly modeling metadata, MeDi helps mitigate “shortcut” biases (e.g.
 ---
 
 ## 1. Repository Structure
+<pre> 
 MeDi/
-├── Scripts/
+├── Scripts/ # Showcases how to use the repo for differnt use-cases
 │ ├── train_diffusion.sh # wrapper for train_diffusion.py
 │ ├── sample.sh # wrapper for sample.py
 │ ├── embed.sh # wrapper for embed.py
@@ -26,6 +27,7 @@ MeDi/
 ├── unet.py # UNet2DModel wrapper & loading
 ├── load_TCGA.py # TCGA metadata loader
 └── requirements.txt # pip dependencies
+</pre>
 
 - **'train_diffusion.py'**  
   Trains a 2D UNet diffusion model.  
@@ -60,11 +62,9 @@ MeDi/
 
 ## 2. Installation
 
-git clone https://github.com/David-Drexlin/MeDi.git
-cd MeDi
-pip install -r requirements.txt
+-git clone https://github.com/David-Drexlin/MeDi.git
+-cd MeDi
+-pip install -r requirements.txt
 
 Data:
 Download TCGA‐UT patches yourself (https://www.cancer.gov/ccg/research/genome-sequencing/tcga)
-
-
