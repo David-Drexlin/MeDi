@@ -67,8 +67,7 @@ MeDi/
   git clone https://github.com/David-Drexlin/MeDi.git
   cd MeDi
   pip install -r requirements.txt
-  ```  ←––– be sure to close the fence here
-
+  ``` 
 - **Data**  
   Download TCGA-UT patches yourself:  
   https://www.cancer.gov/ccg/research/genome-sequencing/tcga
